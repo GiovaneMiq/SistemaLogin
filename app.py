@@ -3,12 +3,21 @@ import customtkinter as ctk
 from tkinter import *
 import sqlite3
 from tkinter import messagebox
+import sys
+
+def resource_path(relative_path):
+        try:
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, relative_path)
 
 class BackEnd():
 
     #--------------- DATABASE ----------------
     def db_connect(self):
-        self.conn = sqlite3.connect("users.db")
+        db_path = resource_path("users.db")
+        self.conn = sqlite3.connect(db_path)
         self.cursor = self.conn.cursor()
         print("Database connected.")
 
@@ -65,6 +74,28 @@ class BackEnd():
             self.db_disconnect()
             messagebox.showerror("Erro", f"Ocorreu um erro: {str(e)}")
 
+    def login_user(self):
+        self.login_username = self.username_login.get()
+        self.login_password = self.password_login.get()
+
+        try:
+            if (self.login_username == "" or self.login_password == ""):
+                messagebox.showerror("Erro", "Por favor, preencha todos os campos.")
+            else:
+                self.db_connect()
+                self.cursor.execute("""SELECT * FROM users WHERE username = ? AND password = ?""",
+                                    (self.login_username, self.login_password))
+                result = self.cursor.fetchone()
+                self.db_disconnect()
+
+                if result:
+                    messagebox.showinfo("Sucesso", f"Bem-vindo, {self.login_username}!")
+                    self.login_clean_entry()
+                else:
+                    messagebox.showerror("Erro", "Nome de usuário ou senha incorretos.")
+        except Exception as e:
+            self.db_disconnect()
+            messagebox.showerror("Erro", f"Ocorreu um erro: {str(e)}")
 
 
 class App(ctk.CTk, BackEnd):
@@ -84,7 +115,8 @@ class App(ctk.CTk, BackEnd):
         self.resizable(False, False)
 
     def create_static_elements(self):
-        img_path = os.path.join("Images", "loginimage.png")
+        img_path = resource_path("loginimage.png")
+
 
         self.img = PhotoImage(file=img_path).subsample(3, 3)
         self.lb_img = ctk.CTkLabel(self, image=self.img, text=None)
@@ -146,7 +178,7 @@ class App(ctk.CTk, BackEnd):
             self.frame_login, width=300,
             text="ENTRAR",
             font=("Century Gothic", 16, "bold"),
-            command=self.login_clean_entry
+            command=self.login_user
         ).grid(row=4, column=0, pady=10)
 
         #GoToRegisterFrameButton
