@@ -1,4 +1,4 @@
-('C:\\Users\\gmiqu\\Desktop\\SistemaLogin\\build\\app\\PYZ-00.pyz',
+('C:\\Users\\gmiqu\\Desktop\\App_LoginSys\\build\\app\\PYZ-00.pyz',
  [('__future__',
    'C:\\Users\\gmiqu\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\__future__.py',
    'PYMODULE'),
