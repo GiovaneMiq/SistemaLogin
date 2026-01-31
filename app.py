@@ -1,14 +1,76 @@
 import os
 import customtkinter as ctk
 from tkinter import *
+import sqlite3
+from tkinter import messagebox
 
 class BackEnd():
-    pass
+
+    #--------------- DATABASE ----------------
+    def db_connect(self):
+        self.conn = sqlite3.connect("users.db")
+        self.cursor = self.conn.cursor()
+        print("Database connected.")
+
+    def db_disconnect(self):
+        self.conn.close()
+        print("Database disconnected.")
+
+    def create_user_table(self):
+        self.db_connect()
+        self.cursor.execute("""CREATE TABLE IF NOT EXISTS users(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            confirm_password TEXT NOT NULL
+            )
+        """)
+
+        self.conn.commit()
+        print("User table ensured.")
+        self.db_disconnect()
+
+    def add_user(self):
+        self.register_username = self.username_register_entry.get()
+        self.register_password = self.password_register_entry.get()
+        self.confirm_password_register = self.confirm_password_entry.get()
+
+        try:
+            if (self.register_username == "" or self.register_password == "" or self.confirm_password_register == ""):
+                messagebox.showerror("Erro", "Por favor, preencha todos os campos.")
+
+            elif (len(self.register_username) < 5):
+                messagebox.showerror("Erro", "O nome de usuário deve ter pelo menos 5 caracteres.")
+            elif (len(self.register_password) < 6):
+                messagebox.showerror("Erro", "A senha deve ter pelo menos 6 caracteres.")
+            elif (self.register_password != self.confirm_password_register):
+                messagebox.showerror("Erro", "As senhas não coincidem.")
+            elif (self.register_password == self.confirm_password_register):
+                self.db_connect()
+                self.cursor.execute("""INSERT INTO users(username, password, confirm_password)
+                    VALUES (?, ?, ?)""", (self.register_username, self.register_password, self.confirm_password_register))
+                self.conn.commit()
+                self.db_disconnect()
+                messagebox.showinfo("Sucesso", "Usuário cadastrado com sucesso!")
+                self.register_clean_entry()
+                self.show_login()
+            else:
+                self.conn.commit()
+                messagebox.showinfo("Sistema de login", "Usuário cadastrado com sucesso!")
+        except sqlite3.IntegrityError:
+            self.db_disconnect()
+            messagebox.showerror("Erro", "Nome de usuário já existe. Escolha outro.")
+
+        except Exception as e:
+            self.db_disconnect()
+            messagebox.showerror("Erro", f"Ocorreu um erro: {str(e)}")
+
 
 
 class App(ctk.CTk, BackEnd):
     def __init__(self):
         super().__init__()
+        self.create_user_table()
         self.config_main_windown()
         self.create_static_elements()
         self.create_login_screen()
@@ -83,7 +145,8 @@ class App(ctk.CTk, BackEnd):
         ctk.CTkButton(
             self.frame_login, width=300,
             text="ENTRAR",
-            font=("Century Gothic", 16, "bold")
+            font=("Century Gothic", 16, "bold"),
+            command=self.login_clean_entry
         ).grid(row=4, column=0, pady=10)
 
         #GoToRegisterFrameButton
@@ -125,13 +188,13 @@ class App(ctk.CTk, BackEnd):
         self.password_register_entry.grid(row=2, column=0, pady=10)
 
         #InputConfirmPassword
-        self.confirm_password = ctk.CTkEntry(
+        self.confirm_password_entry = ctk.CTkEntry(
             self.frame_register, width=300,
             placeholder_text="Confirme sua senha...",
             font=("Century Gothic", 16, "bold"),
             corner_radius=15
         )
-        self.confirm_password.grid(row=3, column=0, pady=10)
+        self.confirm_password_entry.grid(row=3, column=0, pady=10)
 
         # Show password checkbox (keeps placeholders visible until toggled)
         self.show_password_var = IntVar(value=0)
@@ -147,7 +210,8 @@ class App(ctk.CTk, BackEnd):
         self.register_button = ctk.CTkButton(
             self.frame_register, width=300,
             text="CADASTRAR",
-            font=("Century Gothic", 16, "bold")
+            font=("Century Gothic", 16, "bold"),
+            command=self.add_user
         )
         self.register_button.grid(row=5, column=0, pady=10)
 
@@ -169,17 +233,17 @@ class App(ctk.CTk, BackEnd):
         self.password_register_entry.bind(
             "<FocusOut>", lambda e: self._entry_mask_focus_out(self.password_register_entry, e)
         )
-        self.confirm_password.bind(
-            "<FocusIn>", lambda e: self._entry_mask_focus_in(self.confirm_password, e)
+        self.confirm_password_entry.bind(
+            "<FocusIn>", lambda e: self._entry_mask_focus_in(self.confirm_password_entry, e)
         )
-        self.confirm_password.bind(
-            "<FocusOut>", lambda e: self._entry_mask_focus_out(self.confirm_password, e)
+        self.confirm_password_entry.bind(
+            "<FocusOut>", lambda e: self._entry_mask_focus_out(self.confirm_password_entry, e)
         )
 
     def register_clean_entry(self, event=None):
         self.username_register_entry.delete(0, END)
         self.password_register_entry.delete(0, END)
-        self.confirm_password.delete(0, END)
+        self.confirm_password_entry.delete(0, END)
 
     def login_clean_entry(self):
         self.username_login.delete(0, END)
@@ -215,17 +279,17 @@ class App(ctk.CTk, BackEnd):
         try:
             if self.show_password_var.get():
                 self.password_register_entry.configure(show="")
-                self.confirm_password.configure(show="")
+                self.confirm_password_entry.configure(show="")
             else:
                 # if fields empty keep placeholder visible, else mask
                 if self.password_register_entry.get() == "":
                     self.password_register_entry.configure(show="")
                 else:
                     self.password_register_entry.configure(show="*")
-                if self.confirm_password.get() == "":
-                    self.confirm_password.configure(show="")
+                if self.confirm_password_entry.get() == "":
+                    self.confirm_password_entry.configure(show="")
                 else:
-                    self.confirm_password.configure(show="*")
+                    self.confirm_password_entry.configure(show="*")
         except Exception:
             pass
 
