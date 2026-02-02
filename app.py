@@ -4,6 +4,8 @@ from tkinter import *
 import sqlite3
 from tkinter import messagebox
 import sys
+import bcrypt
+
 
 def resource_path(relative_path):
         try:
@@ -30,8 +32,7 @@ class BackEnd():
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS users(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL UNIQUE,
-            password TEXT NOT NULL,
-            confirm_password TEXT NOT NULL
+            password TEXT NOT NULL
             )
         """)
 
@@ -56,8 +57,9 @@ class BackEnd():
                 messagebox.showerror("Erro", "As senhas não coincidem.")
             elif (self.register_password == self.confirm_password_register):
                 self.db_connect()
-                self.cursor.execute("""INSERT INTO users(username, password, confirm_password)
-                    VALUES (?, ?, ?)""", (self.register_username, self.register_password, self.confirm_password_register))
+                hashed_password = self.hash_password(self.register_password)
+                self.cursor.execute("""INSERT INTO users(username, password)
+                    VALUES (?, ?)""", (self.register_username, hashed_password))
                 self.conn.commit()
                 self.db_disconnect()
                 messagebox.showinfo("Sucesso", "Usuário cadastrado com sucesso!")
@@ -74,6 +76,16 @@ class BackEnd():
             self.db_disconnect()
             messagebox.showerror("Erro", f"Ocorreu um erro: {str(e)}")
 
+
+    #--------------- HASH ----------------
+    def hash_password(self, password: str) -> str:
+        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+        return hashed.decode()
+
+    def check_password(self, password: str, hashed: str) -> bool:
+        return bcrypt.checkpw(password.encode(), hashed.encode())
+
+    #--------------- LOGINAUTH ----------------
     def login_user(self):
         self.login_username = self.username_login.get()
         self.login_password = self.password_login.get()
@@ -83,12 +95,12 @@ class BackEnd():
                 messagebox.showerror("Erro", "Por favor, preencha todos os campos.")
             else:
                 self.db_connect()
-                self.cursor.execute("""SELECT * FROM users WHERE username = ? AND password = ?""",
-                                    (self.login_username, self.login_password))
+                self.cursor.execute("""SELECT password FROM users WHERE username = ?""",
+                                    (self.login_username,))
                 result = self.cursor.fetchone()
                 self.db_disconnect()
 
-                if result:
+                if result and self.check_password(self.login_password, result[0]):
                     messagebox.showinfo("Sucesso", f"Bem-vindo, {self.login_username}!")
                     self.login_clean_entry()
                 else:
