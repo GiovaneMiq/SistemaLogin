@@ -109,7 +109,6 @@ class BackEnd():
             self.db_disconnect()
             messagebox.showerror("Erro", f"Ocorreu um erro: {str(e)}")
 
-
 class App(ctk.CTk, BackEnd):
     def __init__(self):
         super().__init__()
@@ -140,6 +139,19 @@ class App(ctk.CTk, BackEnd):
             font=("Century Gothic", 15, "bold")
         )
         self.lb_main_title.grid(row=0, column=0, pady=10)
+
+        self.lb_footer = ctk.CTkLabel(
+        self,
+        text="Login System | Developed by Giovane Miqueloti — 2026",
+        font=("Century Gothic", 11)
+        )
+
+        self.lb_footer.place(
+        relx=0.5,
+        rely=1.0,
+        anchor="s",
+        y=-10
+        )
 
     # ---------------- LOGIN ----------------
     def create_login_screen(self):
